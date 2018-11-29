@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "1037104961665",
+    "firebase_url": "https://upmgrab.firebaseio.com",
+    "project_id": "upmgrab",
+    "storage_bucket": "upmgrab.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1037104961665:android:9f343a103d798226",
+        "android_client_info": {
+          "package_name": "com.example.user.upmgrab"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1037104961665-egf7ductn803s0tuhtb8khn56ppt03cm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.user.upmgrab",
+            "certificate_hash": "b5557aca62398ebca6e6aaa8503e12a68901e31a"
+          }
+        },
+        {
+          "client_id": "1037104961665-414bbspd9sdsuk64gb38hcgv7gk7rdsd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhcUL13pXR5LyqUoJHI0OCOD08OohsLLo"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1037104961665-414bbspd9sdsuk64gb38hcgv7gk7rdsd.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
