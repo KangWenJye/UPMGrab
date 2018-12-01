@@ -485,6 +485,7 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
         mMap.setMyLocationEnabled(true);
     }
 
+
     protected synchronized void buildGoogleApiClient(){
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
