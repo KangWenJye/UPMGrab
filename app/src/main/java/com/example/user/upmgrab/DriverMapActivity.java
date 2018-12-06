@@ -257,6 +257,7 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                     .withListener(this)
                     .alternativeRoutes(false)
                     .waypoints(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()), pickupLatLng)
+                    .key("AIzaSyDyi_elt4WkJKroxgCpqmicr5PZ3bxJ1Ag")
                     .build();
             routing.execute();
         }
