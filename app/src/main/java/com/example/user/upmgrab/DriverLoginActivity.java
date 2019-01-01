@@ -40,7 +40,7 @@ public class DriverLoginActivity extends AppCompatActivity {
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
                 FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
                 if(user!=null){
-                    Intent intent = new Intent(DriverLoginActivity.this, DriverMapActivity.class);
+                    Intent intent = new Intent(DriverLoginActivity.this, DriverMapActivitynew.class);
                     startActivity(intent);
                     finish();
                     return;
@@ -80,7 +80,7 @@ public class DriverLoginActivity extends AppCompatActivity {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if (task.isSuccessful()){
-                            Intent intent = new Intent(DriverLoginActivity.this, DriverMapActivity.class);
+                            Intent intent = new Intent(DriverLoginActivity.this, DriverMapActivitynew.class);
                             startActivity(intent);
                         }else {
                             Toast.makeText(getApplicationContext(),task.getException().getMessage(),Toast.LENGTH_SHORT).show();

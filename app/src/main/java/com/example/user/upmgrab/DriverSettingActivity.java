@@ -36,7 +36,7 @@ import java.util.Map;
 
 public class DriverSettingActivity extends AppCompatActivity {
 
-    private EditText mNameField, mPhoneField, mCarField;
+    private EditText mNameField, mPhoneField, mCarField,  mMatricField, mEmailField, mPasswordField;
 
     private Button mBack, mConfirm;
 
@@ -51,6 +51,12 @@ public class DriverSettingActivity extends AppCompatActivity {
     private String mName;
 
     private String mPhone;
+
+    private String mMatric;
+
+    private String mEmail;
+
+    private String mPassword;
 
     private  String mCar;
 
@@ -69,6 +75,9 @@ public class DriverSettingActivity extends AppCompatActivity {
 
         mNameField = (EditText) findViewById(R.id.name);
         mPhoneField = (EditText) findViewById(R.id.phone);
+        mMatricField = (EditText) findViewById(R.id.matricNum);
+        mEmailField = (EditText) findViewById(R.id.email);
+        mPasswordField = (EditText) findViewById(R.id.password);
         mCarField = (EditText) findViewById(R.id.car);
 
         mProfileImage = (ImageView) findViewById(R.id.profileImage);
@@ -124,7 +133,20 @@ public class DriverSettingActivity extends AppCompatActivity {
                         mCar = map.get("car").toString();
                         mCarField.setText(mCar);
                     }
+                    if(map.get("matric number")!=null) {
+                        mMatric = map.get("matric number").toString();
+                        mMatricField.setText(mMatric);
+                    }
 
+                    if(map.get("email")!=null) {
+                        mEmail = map.get("email").toString();
+                        mEmailField.setText(mEmail);
+                    }
+
+                    if(map.get("password")!=null) {
+                        mPassword = map.get("password").toString();
+                        mPasswordField.setText(mPassword);
+                    }
                     if(map.get("service")!=null) {
                         mService = map.get("service").toString();
                         switch (mService){
@@ -152,6 +174,9 @@ public class DriverSettingActivity extends AppCompatActivity {
     private void saveUserInformation(){
         mName = mNameField.getText().toString();
         mPhone = mPhoneField.getText().toString();
+        mEmail = mEmailField.getText().toString();
+        mMatric = mMatricField.getText().toString();
+        mPassword = mPasswordField.getText().toString();
         mCar = mCarField.getText().toString();
 
         int selectId = mRadioGroup.getCheckedRadioButtonId();
@@ -167,6 +192,9 @@ public class DriverSettingActivity extends AppCompatActivity {
         Map userInfo = new HashMap();
         userInfo.put("name",mName);
         userInfo.put("phone",mPhone);
+        userInfo.put("matric number",mMatric);
+        userInfo.put("email",mEmail);
+        userInfo.put("password",mPassword);
         userInfo.put("car",mCar);
         userInfo.put("service",mService);
         mDriverDatabase.updateChildren(userInfo);

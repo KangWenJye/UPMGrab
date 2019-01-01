@@ -6,19 +6,18 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
-import android.nfc.Tag;
 import android.os.Build;
 import android.os.Looper;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.Menu;
-import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -28,9 +27,14 @@ import android.widget.RadioGroup;
 import android.widget.RatingBar;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.Toolbar;
-
+import android.support.v7.widget.Toolbar;
 import com.bumptech.glide.Glide;
+import com.directions.route.AbstractRouting;
+import com.directions.route.Route;
+import com.directions.route.RouteException;
+import com.directions.route.Routing;
+import com.directions.route.RoutingListener;
+import com.example.user.upmgrab.Model.CustomerInfo;
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
 import com.firebase.geofire.GeoQuery;
@@ -38,12 +42,12 @@ import com.firebase.geofire.GeoQueryEventListener;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.places.AutocompleteFilter;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.ui.PlaceAutocompleteFragment;
 import com.google.android.gms.location.places.ui.PlaceSelectionListener;
@@ -53,8 +57,11 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -67,31 +74,38 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class CustomerMapActivity extends FragmentActivity implements OnMapReadyCallback {
+public class CustomerMapActivity extends AppCompatActivity
+        implements NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback, RoutingListener {
 
     private GoogleMap mMap;
     Location mLastLocation;
     LocationRequest mLocationRequest;
 
+    private int status = 0;
+
     private FusedLocationProviderClient mFusedLocationClient;
 
-    private Button mLogout, mRequest, mSettings, mHistory;
+    private Button mLogout, mRequest, mSettings, mHistory, mCancelRequest;
 
     private LatLng pickupLocation;
 
     private Boolean requestBol = false;
 
-    private Marker pickupMarker;
+    private Marker pickupMarker, destinationMarker;
 
-    private String destination, requestService;
+    private String customerId= "", destination, requestService;
+
+    private String placeDestination, placeLocation;
 
     private LatLng destinationLatLng;
 
+    private LatLng pickupLatLng;
+
     private LinearLayout mDriverInfo;
 
-    private ImageView mDriverProfileImage;
+    private ImageView mDriverProfileImage, mProfileImage;
 
-    private TextView mDriverName, mDriverPhone, mDriverCar;
+    private TextView mDriverName, mDriverPhone, mDriverCar, mDriverLocation, mFare;
 
     private SupportMapFragment mapFragment;
 
@@ -99,17 +113,36 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
 
     private RatingBar mRatingBar;
 
+    private PlaceAutocompleteFragment place_location, place_destination;
+
+    private AutocompleteFilter typeFilter;
+
+    private String mPlaceLocation,mPlaceDestination;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_customer_map);
+        setContentView(R.layout.activity_customer_navi_drawer);
+
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        drawer.addDrawerListener(toggle);
+        toggle.syncState();
+
+        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        navigationView.setNavigationItemSelectedListener(this);
+
+        polylines = new ArrayList<>();
 
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-
 
         destinationLatLng = new LatLng(0.0,0.0);
 
@@ -117,18 +150,24 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
 
         mDriverProfileImage = (ImageView) findViewById(R.id.driverProfileImage);
 
+        mProfileImage = (ImageView) findViewById(R.id.imageView);
+
+        mDriverLocation = (TextView) findViewById(R.id.driverLocation);
+
         mDriverName = (TextView) findViewById(R.id.driverName);
         mDriverPhone = (TextView) findViewById(R.id.driverPhone);
         mDriverCar = (TextView) findViewById(R.id.driverCar);
+
+
 
         mRatingBar = (RatingBar) findViewById(R.id.ratingBar);
 
         mRadioGroup = (RadioGroup) findViewById(R.id.radioGroup);
         mRadioGroup.check(R.id.ownCar);
 
-        mLogout = (Button) findViewById(R.id.logout);
-        mRequest = (Button) findViewById(R.id.request);
-        mSettings = (Button) findViewById(R.id.settings);
+        /*mLogout = (Button) findViewById(R.id.logout);
+
+        mSettings = (Button) findViewById(R.id.profiles);
         mHistory = (Button) findViewById(R.id.history);
 
         mLogout.setOnClickListener(new View.OnClickListener() {
@@ -142,12 +181,48 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
             }
         });
 
+        mSettings.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(CustomerMapActivity.this, CustomerSettingActivity.class);
+                startActivity(intent);
+                return;
+            }
+        });
+
+        mHistory.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(CustomerMapActivity.this, HistoryActivity.class);
+                intent.putExtra("customerOrDriver", "Customers");
+                startActivity(intent);
+                return;
+            }
+        });*/
+
+        mFare = (TextView) findViewById(R.id.fare);
+
+
+        mCancelRequest = (Button) findViewById(R.id.cancelRequest);
+        mCancelRequest.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mFare.setVisibility(View.GONE);
+                //
+                if(requestBol){
+                    mCancelRequest.setVisibility(View.GONE);
+                    endRide();
+
+                }
+            }
+        });
+
+        mRequest = (Button) findViewById(R.id.request);
         mRequest.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (requestBol){
-                    endRide();
-                }else{
+                    mCancelRequest.setVisibility(View.VISIBLE);
+                    mFare.setVisibility(View.VISIBLE);
                     int selectId = mRadioGroup.getCheckedRadioButtonId();
 
                     final RadioButton radioButton = (RadioButton) findViewById(selectId);
@@ -166,39 +241,39 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
                     geoFire.setLocation(userId, new GeoLocation(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
 
                     pickupLocation = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
-                    pickupMarker = mMap.addMarker(new MarkerOptions()
-                                       .position(pickupLocation)
-                                       .title("Pickup Here"));
 
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()),15.0f));
+                    ref.addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
 
-                    mRequest.setText("Getting your Driver....");
+                           // CustomerInfo customerInfo = dataSnapshot.getValue(CustomerInfo.class);
+
+                            pickupMarker = mMap.addMarker (new MarkerOptions()
+                                    .position(pickupLocation)
+                                    .title("ME"));
+                                    //.snippet("Phone : "+customerInfo.getPhone()));
+
+                            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()),15.0f));
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                        }
+                    });
+
+
+                    //mRequest.setText("Getting your Driver....");
 
                     getClosestDriver();
+                    getRouteToMarker();
                 }
 
-            }
-        });
-        mSettings.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(CustomerMapActivity.this, CustomerSettingActivity.class);
-                startActivity(intent);
-                return;
-            }
+
         });
 
-        mHistory.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(CustomerMapActivity.this, HistoryActivity.class);
-                intent.putExtra("customerOrDriver", "Customers");
-                startActivity(intent);
-                return;
-            }
-        });
 
-        PlaceAutocompleteFragment autocompleteFragment = (PlaceAutocompleteFragment)
+        /*PlaceAutocompleteFragment autocompleteFragment = (PlaceAutocompleteFragment)
                 getFragmentManager().findFragmentById(R.id.place_autocomplete_fragment);
 
         autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
@@ -214,6 +289,55 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
             public void onError(Status status) {
                 // TODO: Handle the error.
             }
+        });*/
+
+        /*place_location = (PlaceAutocompleteFragment)getFragmentManager().findFragmentById(R.id.place_location);
+
+        typeFilter = new AutocompleteFilter.Builder()
+                    .setTypeFilter(AutocompleteFilter.TYPE_FILTER_ADDRESS)
+                    .setTypeFilter(3)
+                    .build();
+
+        place_location.setOnPlaceSelectedListener(new PlaceSelectionListener() {
+            @Override
+            public void onPlaceSelected(Place place) {
+                placeLocation = place.getName().toString();
+                pickupLocation = place.getLatLng();
+
+                mMap.clear();
+
+                pickupMarker = mMap.addMarker(new MarkerOptions().position(place.getLatLng())
+                        .icon(BitmapDescriptorFactory.defaultMarker())
+                        .title("Pickup Here"));
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(place.getLatLng(),15.0f));
+            }
+
+            @Override
+            public void onError(Status status) {
+
+            }
+        });*/
+
+        place_destination = (PlaceAutocompleteFragment)getFragmentManager().findFragmentById(R.id.place_destination);
+        place_destination.setOnPlaceSelectedListener(new PlaceSelectionListener() {
+            @Override
+            public void onPlaceSelected(Place place) {
+                // TODO: Get info about the selected place.
+                placeDestination = place.getName().toString();
+                destinationLatLng = place.getLatLng();
+
+
+                destinationMarker = mMap.addMarker(new MarkerOptions().position(place.getLatLng())
+                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
+                        .title("Destination"));
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(place.getLatLng(),15.0f));
+
+            }
+
+            @Override
+            public void onError(Status status) {
+                // TODO: Handle the error.
+            }
         });
 
         if(googleServicesAvailable()){
@@ -221,8 +345,48 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
 
         }
 
-
     }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        if (id == android.R.id.home){
+            this.finish();
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+ 
+
+    @SuppressWarnings("StatementWithEmptyBody")
+    @Override
+    public boolean onNavigationItemSelected(MenuItem item) {
+        // Handle navigation view item clicks here.
+        int id = item.getItemId();
+
+        if (id == R.id.profiles) {
+            Intent intent = new Intent(CustomerMapActivity.this, CustomerSettingActivity.class);
+            startActivity(intent);
+
+        } else if (id == R.id.history) {
+            Intent intent = new Intent(CustomerMapActivity.this, HistoryActivity.class);
+            intent.putExtra("customerOrDriver", "Customers");
+            startActivity(intent);
+
+        } else if (id == R.id.logout) {
+            FirebaseAuth.getInstance().signOut();
+            Intent intent = new Intent(CustomerMapActivity.this, CustomerLoginActivity.class);
+            startActivity(intent);
+            finish();
+
+        }
+
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        drawer.closeDrawer(GravityCompat.START);
+        return true;
+    }
+
 
     private boolean googleServicesAvailable(){
         GoogleApiAvailability api = GoogleApiAvailability.getInstance();
@@ -237,14 +401,6 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
         }
         return false;
     }
-
-
-    /*@Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.drawermenu,menu);
-        return true;
-    }*/
 
     private int radius = 1;
     private Boolean driverFound = false;
@@ -280,11 +436,13 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
                                     String customerId = FirebaseAuth.getInstance().getCurrentUser().getUid();
                                     HashMap map = new HashMap();
                                     map.put("customerRideId", customerId);
-                                    map.put("destination", destination);
+                                    //map.put("customer location", placeLocation);
+                                    map.put("customer destination", placeDestination);
                                     map.put("destinationLat", destinationLatLng.latitude);
                                     map.put("destinationLng", destinationLatLng.longitude);
                                     driverRef.updateChildren(map);
 
+                                    getCustomerInfo();
                                     getDriverLocation();
                                     getDriverInfo();
                                     getHasRideEnded();
@@ -326,6 +484,7 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
             }
         });
     }
+
     private Marker mDriverMarker;
     private DatabaseReference driverLocationRef;
     private ValueEventListener driverLocationRefListener;
@@ -347,6 +506,7 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
                     }
                     LatLng driverLatLng = new LatLng(locationLat,locationLng);
                     if(mDriverMarker != null){
+                        mDriverLocation.setText(driverLatLng.toString());
                         mDriverMarker.remove();
                     }
                     Location loc1 = new Location("");
@@ -365,9 +525,10 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
                         mRequest.setText("Driver found: " + String.valueOf(distance));
                     }
 
-
-
-                    mDriverMarker = mMap.addMarker(new MarkerOptions().position(driverLatLng).title("your driver").icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_launcher_car_top_view)));
+                    mDriverMarker = mMap.addMarker(new MarkerOptions()
+                                        .position(driverLatLng)
+                                        .title("your driver")
+                                        .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_launcher_car_top_view)));
                 }
 
             }
@@ -378,6 +539,41 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
         });
 
     }
+
+    private void getRouteToMarker() {
+        if (pickupLocation != null && destinationLatLng != null) {
+            Routing routing = new Routing.Builder()
+                    .travelMode(AbstractRouting.TravelMode.DRIVING)
+                    .withListener(this)
+                    .alternativeRoutes(false)
+                    .waypoints(pickupLocation, destinationLatLng)
+                    .key("AIzaSyDyi_elt4WkJKroxgCpqmicr5PZ3bxJ1Ag")
+                    .build();
+            routing.execute();
+        }
+    }
+
+    private void getCustomerInfo() {
+        DatabaseReference mCustomerDatabase = FirebaseDatabase.getInstance().getReference().child("Users").child("Customers").child(customerId);
+        mCustomerDatabase.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if (dataSnapshot.exists() && dataSnapshot.getChildrenCount() >0){
+                    Map<String, Object> map = (Map<String, Object>) dataSnapshot.getValue();
+                    if (map.get("profileImageUrl")!=null){
+                        Glide.with(getApplication()).load(map.get("profileImageUrl").toString()).into(mProfileImage);
+                    }
+
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+    }
+
 
     private void getDriverInfo(){
         mDriverInfo.setVisibility(View.VISIBLE);
@@ -469,12 +665,21 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
         if(pickupMarker != null){
             pickupMarker.remove();
         }
+
+        if (destinationMarker !=null){
+            destinationMarker.remove();
+        }
+
         if (mDriverMarker !=null){
             mDriverMarker.remove();
         }
+
         mRequest.setText("call Uber");
+        erasePolylines();
 
         mDriverInfo.setVisibility(View.GONE);
+        mFare.setVisibility(View.GONE);
+        mCancelRequest.setVisibility(View.GONE);
         mDriverName.setText("");
         mDriverPhone.setText("");
         mDriverCar.setText("Destination: --");
@@ -501,6 +706,25 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
 
         mFusedLocationClient.requestLocationUpdates(mLocationRequest, mLocationCallback, Looper.myLooper());
         mMap.setMyLocationEnabled(true);
+
+
+          /*  LatLng center = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+            //distance in meters
+            //heading 0 is northside, 90 is east, 180 is southside, 270 is west
+            //base on compact
+            LatLng northSide = SphericalUtil.computeOffset(center, 100000, 0);
+            LatLng southSide = SphericalUtil.computeOffset(center, 100000, 180);
+
+            LatLngBounds bounds = LatLngBounds.builder()
+                    .include(northSide)
+                    .include(southSide)
+                    .build();
+
+            place_location.setBoundsBias(bounds);
+            place_location.setFilter(typeFilter);
+            place_destination.setBoundsBias(bounds);
+            place_location.setFilter(typeFilter);*/
+
     }
 
     LocationCallback mLocationCallback = new LocationCallback(){
@@ -508,19 +732,21 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
         public void onLocationResult(LocationResult locationResult) {
             for(Location location : locationResult.getLocations()){
                 if(getApplicationContext()!=null){
+
                     mLastLocation = location;
 
-                    LatLng latLng = new LatLng(location.getLatitude(),location.getLongitude());
+                    LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
                     mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
                     mMap.animateCamera(CameraUpdateFactory.zoomTo(18));
                     mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
                     mMap.setTrafficEnabled(false);
                     mMap.setIndoorEnabled(false);
                     mMap.setBuildingsEnabled(false);
-                    mMap.getUiSettings().setZoomControlsEnabled(true);
+                    //mMap.getUiSettings().setZoomControlsEnabled(true);
 
-                    if(!getDriversAroundStarted)
+                    if (!getDriversAroundStarted)
                         getDriversAround();
+
                 }
             }
         }
@@ -586,13 +812,13 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
                 LatLng driverLocation = new LatLng(location.latitude, location.longitude);
 
                 Marker mDriverMarker = mMap.addMarker(new MarkerOptions().position(driverLocation)
-                                                                         .title(key)
-                                                                         .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_launcher_car_top_view)));
+                        .title(key)
+                        .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_launcher_car_top_view)));
 
                 mDriverMarker.setTag(key);
 
                 markerList.add(mDriverMarker);
-                
+
             }
 
             @Override
@@ -624,6 +850,74 @@ public class CustomerMapActivity extends FragmentActivity implements OnMapReadyC
 
             }
         });
+    }
+
+    private List<Polyline> polylines;
+    private static final int[] COLORS = new int[]{R.color.primary_dark_material_light};
+    @Override
+    public void onRoutingFailure(RouteException e) {
+        if(e != null) {
+            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }else {
+            Toast.makeText(this, "Something went wrong, Try again", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onRoutingStart() {
+    }
+
+    @Override
+    public void onRoutingSuccess(ArrayList<Route> route, int shortestRouteIndex) {
+
+        LatLngBounds.Builder builder = new LatLngBounds.Builder();
+        //builder.include(pickupLatLng);
+        builder.include(destinationLatLng);
+        LatLngBounds bounds = builder.build();
+
+        if(polylines.size()>0) {
+            for (Polyline poly : polylines) {
+                poly.remove();
+            }
+        }
+
+        polylines = new ArrayList<>();
+        //add route(s) to the map.
+        for (int i = 0; i <route.size(); i++) {
+
+            //In case of more than 5 alternative routes
+            int colorIndex = i % COLORS.length;
+
+            PolylineOptions polyOptions = new PolylineOptions();
+            polyOptions.color(getResources().getColor(COLORS[colorIndex]));
+            polyOptions.width(10 + i * 3);
+            polyOptions.addAll(route.get(i).getPoints());
+            Polyline polyline = mMap.addPolyline(polyOptions);
+            polylines.add(polyline);
+
+            Toast.makeText(getApplicationContext(),"Route "+ (i+1) +": distance - "+ route.get(i).getDistanceValue()+": duration - "+ route.get(i).getDurationValue(),Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onRoutingCancelled() {
+    }
+    private void erasePolylines(){
+        for(Polyline line : polylines){
+            line.remove();
+        }
+        polylines.clear();
+    }
+
+
+    @Override
+    public void onBackPressed() {
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        if (drawer.isDrawerOpen(GravityCompat.START)) {
+            drawer.closeDrawer(GravityCompat.START);
+        } else {
+            super.onBackPressed();
+        }
     }
 
 }

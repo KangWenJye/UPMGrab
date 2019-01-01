@@ -40,6 +40,7 @@ public class HistoryActivity extends AppCompatActivity {
         mHistoryRecyclerView.setAdapter(mHistoryAdapter);
 
         customerOrDriver = getIntent().getExtras().getString("customerOrDriver");
+
         userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         getUserHistoryIds();
 

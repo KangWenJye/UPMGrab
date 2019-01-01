@@ -8,4 +8,8 @@
     <color name="btnDriver">#1fbad6</color>
     <color name="btnCustomer">#83838c</color>
     <color name="btnDriverSignIn">#1fbad6</color>
+    <color name="textColor">#83838c</color>
+    <color name="cancelRequest">#83838c</color>
+
+    <color name="divideColor">#1f000000</color>
 </resources>

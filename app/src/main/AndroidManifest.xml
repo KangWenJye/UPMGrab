@@ -17,9 +17,9 @@
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/user"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@mipmap/user"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
@@ -49,21 +49,20 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/google_maps_key" />
 
-        <activity
-            android:name=".DriverMapActivity"
-            android:label="@string/title_activity_driver_map" />
-        <activity
-            android:name=".CustomerMapActivity"
-            android:label="@string/title_activity_customer_map" />
         <activity android:name=".CustomerSignUpActivity" />
         <activity android:name=".DriverSignUpActivity" />
         <activity android:name=".CustomerSettingActivity" />
         <activity android:name=".DriverSettingActivity" />
         <activity android:name=".HistoryActivity" />
-        <activity android:name=".HistorySingleActivity" ></activity>
-
-
-
+        <activity android:name=".HistorySingleActivity"/>
+        <activity
+            android:name=".CustomerMapActivity"
+            android:label="@string/title_activity_customer_navi_drawer"
+            android:theme="@style/AppTheme" />
+        <activity
+            android:name=".DriverMapActivitynew"
+            android:label="@string/title_activity_driver_map_activitynew"
+            android:theme="@style/AppTheme"></activity>
     </application>
 
 </manifest>

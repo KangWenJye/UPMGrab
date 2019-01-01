@@ -36,7 +36,7 @@ import java.util.Map;
 
 public class CustomerSettingActivity extends AppCompatActivity {
 
-    private EditText mNameField, mPhoneField;
+    private EditText mNameField, mPhoneField, mMatricField, mEmailField, mPasswordField;
 
     private Button mBack, mConfirm;
 
@@ -52,6 +52,12 @@ public class CustomerSettingActivity extends AppCompatActivity {
 
     private String mPhone;
 
+    private String mMatric;
+
+    private String mEmail;
+
+    private String mPassword;
+
     private String mProfileImageUrl;
 
     private Uri resultUri;
@@ -64,6 +70,9 @@ public class CustomerSettingActivity extends AppCompatActivity {
 
         mNameField = (EditText) findViewById(R.id.name);
         mPhoneField = (EditText) findViewById(R.id.phone);
+        mMatricField = (EditText) findViewById(R.id.matricNum);
+        mEmailField = (EditText) findViewById(R.id.email);
+        mPasswordField = (EditText) findViewById(R.id.password);
 
         mProfileImage = (ImageView) findViewById(R.id.profileImage);
         mBack = (Button) findViewById(R.id.back);
@@ -114,6 +123,21 @@ public class CustomerSettingActivity extends AppCompatActivity {
                         mPhone = map.get("phone").toString();
                         mPhoneField.setText(mPhone);
                     }
+
+                    if(map.get("matric number")!=null) {
+                        mMatric = map.get("matric number").toString();
+                        mMatricField.setText(mMatric);
+                    }
+
+                    if(map.get("email")!=null) {
+                        mEmail = map.get("email").toString();
+                        mEmailField.setText(mEmail);
+                    }
+
+                    if(map.get("password")!=null) {
+                        mPassword = map.get("password").toString();
+                        mPasswordField.setText(mPassword);
+                    }
                     if(map.get("profileImageUrl")!=null) {
                         mProfileImageUrl = map.get("profileImageUrl").toString();
                         Glide.with(getApplication()).load(mProfileImageUrl).into(mProfileImage);
@@ -130,9 +154,15 @@ public class CustomerSettingActivity extends AppCompatActivity {
     private void saveUserInformation(){
         mName = mNameField.getText().toString();
         mPhone = mPhoneField.getText().toString();
+        mEmail = mEmailField.getText().toString();
+        mMatric = mMatricField.getText().toString();
+        mPassword = mPasswordField.getText().toString();
         Map userInfo = new HashMap();
         userInfo.put("name",mName);
         userInfo.put("phone",mPhone);
+        userInfo.put("matric number",mMatric);
+        userInfo.put("email",mEmail);
+        userInfo.put("password",mPassword);
         mCustomerDatabase.updateChildren(userInfo);
 
         if(resultUri != null){

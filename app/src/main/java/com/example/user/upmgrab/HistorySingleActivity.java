@@ -1,14 +1,17 @@
 package com.example.user.upmgrab;
 
+import android.os.Build;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.RatingBar;
 import android.widget.TextView;
 import android.widget.Toast;
-
+import android.support.v7.widget.Toolbar;
 import com.bumptech.glide.Glide;
 import com.directions.route.AbstractRouting;
 import com.directions.route.Route;
@@ -23,6 +26,7 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
@@ -43,7 +47,7 @@ public class HistorySingleActivity extends AppCompatActivity implements OnMapRea
 
     private String rideId, currentUserId, customerId, driverId, userDriverOrCustomer;
 
-    private TextView rideLocation;
+    private TextView rideLocation, rideDestination;
     private TextView rideDistance;
     private TextView rideDate;
     private TextView userName;
@@ -59,11 +63,23 @@ public class HistorySingleActivity extends AppCompatActivity implements OnMapRea
     private Double ridePrice;
     private GoogleMap mMap;
     private SupportMapFragment mMapFragment;
+    private TextView mFare;
 
+    private Marker pickupMarker, destinationMarker;
+
+    @RequiresApi
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_history_single);
+
+        //Toolbar toolbar = findViewById(R.id.toolbar);
+        //setSupportActionBar(toolbar);
+
+        //getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        //getSupportActionBar().setDisplayShowHomeEnabled(true);
+
+
         polylines = new ArrayList<>();
 
         rideId = getIntent().getExtras().getString("rideId");
@@ -71,11 +87,14 @@ public class HistorySingleActivity extends AppCompatActivity implements OnMapRea
 
         mMapFragment.getMapAsync(this);
 
-        rideLocation = (TextView) findViewById(R.id.rideLocation);
+        //rideLocation = (TextView) findViewById(R.id.rideLocation);
+        rideDestination = (TextView) findViewById(R.id.rideDestination);
         rideDistance = (TextView) findViewById(R.id.rideDistance);
         rideDate = (TextView) findViewById(R.id.rideDate);
         userName = (TextView) findViewById(R.id.userName);
         userPhone = (TextView) findViewById(R.id.userPhone);
+        mFare = (TextView) findViewById(R.id.fare);
+
 
         userImage = (ImageView) findViewById(R.id.userImage);
 
@@ -84,8 +103,40 @@ public class HistorySingleActivity extends AppCompatActivity implements OnMapRea
         currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
         historyRideInfoDb= FirebaseDatabase.getInstance().getReference().child("history").child(rideId);
+
         getRideInformation();
     }
+
+    /*private void getFare() {
+        DatabaseReference fareRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child("fare");
+        fareRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if(dataSnapshot.exists() && dataSnapshot.getChildrenCount()>0){
+                    Map<String, Object> map = (Map<String, Object>) dataSnapshot.getValue();
+                    if(map.get("fare")!= null){
+                        mFare.setText(map.get("fare").toString());
+                    }
+                }
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+    }*/
+
+
+
+   /* @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == android.R.id.home){
+            finish();
+        }
+        return super.onOptionsItemSelected(item);
+    }*/
 
     private void getRideInformation() {
         historyRideInfoDb.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -98,6 +149,7 @@ public class HistorySingleActivity extends AppCompatActivity implements OnMapRea
                             if (!customerId.equals(currentUserId)) {
                                 userDriverOrCustomer = "Drivers";
                                 getUserInformation("Customer",customerId);
+                                getFare("Customer",customerId);
                             }
                         }
                         if (child.getKey().equals("driver")) {
@@ -105,6 +157,7 @@ public class HistorySingleActivity extends AppCompatActivity implements OnMapRea
                             if (!driverId.equals(currentUserId)) {
                                 userDriverOrCustomer = "Customers";
                                 getUserInformation("Drivers",driverId);
+                                getFare("Drivers",driverId);
                                 displayCustomerRelatedObjects();
                             }
                         }
@@ -119,14 +172,20 @@ public class HistorySingleActivity extends AppCompatActivity implements OnMapRea
                             rideDistance.setText(distance.substring(0, Math.min(distance.length(),5)) +" km");
                             ridePrice = Double.valueOf(distance) * 0.5;
                         }
-                        if (child.getKey().equals("destination")) {
+                        /*if (child.getKey().equals("Customer Location")) {
                             rideLocation.setText(child.getValue().toString());
+                        }*/
+
+                        if (child.getKey().equals("customer destination")) {
+                            rideDestination.setText(child.getValue().toString());
                         }
                         if (child.getKey().equals("location")) {
                             pickupLatLng = new LatLng(Double.valueOf(child.child("from").child("lat").getValue().toString()), Double.valueOf(child.child("from").child("lng").getValue().toString()));
                             destinationLatLng = new LatLng(Double.valueOf(child.child("to").child("lat").getValue().toString()), Double.valueOf(child.child("to").child("lng").getValue().toString()));
                             if(destinationLatLng != new LatLng(0,0)){
                                 getRouteToMarker();
+
+
                             }
                         }
                     }
@@ -177,6 +236,28 @@ public class HistorySingleActivity extends AppCompatActivity implements OnMapRea
         });
     }
 
+    private void getFare(String otherUserDriverOrCustomer, String otherUserId) {
+        DatabaseReference mOtherUserDB = FirebaseDatabase.getInstance().getReference().child("Users").child(otherUserDriverOrCustomer).child(otherUserId).child("fare");
+        mOtherUserDB.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if (dataSnapshot.exists() && dataSnapshot.getChildrenCount() > 0) {
+                    Map<String, Object> map = (Map<String, Object>) dataSnapshot.getValue();
+                    if (map.get("fare") != null) {
+                        mFare.setText(map.get("fare").toString());
+
+                    }
+                }
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+    }
+
     private String getDate(Long timestamp) {
         Calendar cal = Calendar.getInstance(Locale.getDefault());
         cal.setTimeInMillis(timestamp*1000);
@@ -191,6 +272,7 @@ public class HistorySingleActivity extends AppCompatActivity implements OnMapRea
                 .withListener(this)
                 .alternativeRoutes(false)
                 .waypoints(pickupLatLng, destinationLatLng)
+                .key("AIzaSyDyi_elt4WkJKroxgCpqmicr5PZ3bxJ1Ag")
                 .build();
         routing.execute();
     }
@@ -198,6 +280,7 @@ public class HistorySingleActivity extends AppCompatActivity implements OnMapRea
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+
     }
 
     private List<Polyline> polylines;
@@ -230,8 +313,18 @@ public class HistorySingleActivity extends AppCompatActivity implements OnMapRea
 
         mMap.animateCamera(cameraUpdate);
 
-        mMap.addMarker(new MarkerOptions().position(pickupLatLng).title("pickup location").icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_launcher_foreground_pickup)));
-        mMap.addMarker(new MarkerOptions().position(destinationLatLng).title("destination"));
+
+        pickupMarker = mMap.addMarker(new MarkerOptions()
+                .position(pickupLatLng)
+                .title("pickup location")
+                .icon(BitmapDescriptorFactory
+                        .fromResource(R.mipmap.ic_pickup)));
+
+
+        destinationMarker = mMap.addMarker(new MarkerOptions()
+                .position(destinationLatLng)
+                .title("destination"));
+
 
         if(polylines.size()>0) {
             for (Polyline poly : polylines) {

@@ -7,48 +7,121 @@
     tools:context=".CustomerSettingActivity"
     android:orientation="vertical"
     android:padding="20sp"
-    android:background="@drawable/login_background">
+    android:background="@drawable/timelapseedit1">
 
     <ImageView
         android:layout_width="100sp"
         android:layout_height="100sp"
         android:id="@+id/profileImage"
-        android:src="@mipmap/ic_launcher"
+        android:layout_gravity="center"
+        android:src="@mipmap/user"
+        android:background="@android:color/white"
         android:layout_marginBottom="20sp"/>
-    <EditText
+    <com.rengwuxian.materialedittext.MaterialEditText
         android:id="@+id/name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@null"
         android:hint="Name"
-        android:layout_marginBottom="20sp"/>
+        android:inputType="textPersonName"
+        android:text=""
+        android:textColor="@android:color/white"
+        android:textColorHint="@android:color/white"
+        android:textSize="20sp"
 
-    <EditText
+        app:met_baseColor="@android:color/white"
+        app:met_floatingLabel="highlight"
+        app:met_primaryColor="@android:color/white"
+        app:met_singleLineEllipsis="true" />
+
+    <com.rengwuxian.materialedittext.MaterialEditText
+        android:id="@+id/email"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Email"
+        android:inputType="textEmailAddress"
+        android:text=""
+        android:textColor="@android:color/white"
+        android:textColorHint="@android:color/white"
+        android:textSize="20sp"
+
+        app:met_baseColor="@android:color/white"
+        app:met_floatingLabel="highlight"
+        app:met_primaryColor="@android:color/white"
+        app:met_singleLineEllipsis="true" />
+
+    <com.rengwuxian.materialedittext.MaterialEditText
+        android:id="@+id/matricNum"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Matric Number"
+        android:text=""
+        android:textColor="@android:color/white"
+        android:textColorHint="@android:color/white"
+        android:textSize="20sp"
+
+        app:met_baseColor="@android:color/white"
+        app:met_floatingLabel="highlight"
+        app:met_primaryColor="@android:color/white"
+        app:met_singleLineEllipsis="true" />
+
+    <com.rengwuxian.materialedittext.MaterialEditText
+    android:id="@+id/password"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:hint="Password"
+    android:inputType="text"
+    android:text=""
+    android:textColor="@android:color/white"
+    android:textColorHint="@android:color/white"
+    android:textSize="20sp"
+
+    app:met_baseColor="@android:color/white"
+    app:met_floatingLabel="highlight"
+    app:met_primaryColor="@android:color/white"
+    app:met_singleLineEllipsis="true" />
+
+    <com.rengwuxian.materialedittext.MaterialEditText
         android:id="@+id/phone"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@null"
         android:hint="Phone"
-        android:layout_marginBottom="20sp"
-        android:inputType="number"/>
+        android:inputType=""
+        android:text=""
+        android:textColor="@android:color/white"
+        android:textColorHint="@android:color/white"
+        android:textSize="20sp"
 
-    <Button
+        app:met_baseColor="@android:color/white"
+        app:met_floatingLabel="highlight"
+        app:met_primaryColor="@android:color/white"
+        app:met_singleLineEllipsis="true" />
+
+    <LinearLayout
+
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/confirm"
-        android:text="confirm"
-        android:background="@drawable/btn_driver_background"
-        android:textColor="@android:color/white"/>
+        android:layout_height="wrap_content">
 
-    <Button
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/back"
-        android:text="back"
-        android:layout_marginTop="10dp"
-        android:background="@drawable/btn_driver_background"
-        android:textColor="@android:color/white"/>
+        <Button
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:id="@+id/confirm"
+            android:text="confirm"
+            android:layout_marginRight="10dp"
+            android:background="@drawable/btn_driver_background"
+            android:textColor="@android:color/white"/>
 
+        <Button
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:id="@+id/back"
+            android:text="back"
+
+            android:background="@drawable/btn_driver_background"
+            android:textColor="@android:color/white"/>
+
+    </LinearLayout>
 
 
 </LinearLayout>
